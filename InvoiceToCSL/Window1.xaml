@@ -1,0 +1,12 @@
+﻿<Window x:Class="InvoiceToCSL.Window1"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Window1" Height="300" Width="300">
+    <DockPanel>
+        
+        <Button DockPanel.Dock="Top" Name="browseButton" Click="browseButton_Click">Select File</Button>
+        <Button DockPanel.Dock="Bottom" Name="convertFileButton" Click="convertFile_Click" Visibility="Collapsed">Convert</Button>
+        <TextBlock Name="outputTextBox"></TextBlock>
+
+    </DockPanel>
+</Window>
