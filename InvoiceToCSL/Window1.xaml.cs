@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
+using System.Threading;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Threading;
 using InvoiceToCSL.Core;
 using Microsoft.Win32;
 
@@ -10,7 +15,7 @@ namespace InvoiceToCSL
     /// <summary>
     /// Interaction logic for Window1.xaml
     /// </summary>
-    public partial class Window1
+    public partial class Window1 : IProgressWindow
     {
         public Window1()
         {
@@ -49,9 +54,28 @@ namespace InvoiceToCSL
         {
             outputTextBox.Text += Environment.NewLine + "Converting...";
 
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.DoWork += WorkerOnDoWork;
+
+            worker.RunWorkerAsync(this);
+        }
+
+        private void WorkerOnDoWork(object sender, DoWorkEventArgs args)
+        {
+            IProgressWindow window = args.Argument as IProgressWindow;
             FileStream stream = new FileStream(InputFileName, FileMode.Open);
+
+            long overallLength = stream.Length;
+
             InvoiceReader reader = new InvoiceReader(stream);
-            IList<Receipt> receipts = reader.GetReceipts();
+            reader.FinishedReadingLine += lineLength =>
+                                              {
+                                                  window.UpdateProgress(((double)lineLength / (double)overallLength)); 
+                                              };
+
+            List<Receipt> receipts = reader.GetReceipts();
+
+            reader.FillMissingDates(receipts);
 
             FileStream magazineOutputStream =
                 new FileStream(InputFileDir + "/" + reader.InvoiceMonth + "-" + reader.InvoiceNumber + " - Magazine" + ".csv",
@@ -71,13 +95,22 @@ namespace InvoiceToCSL
             {
                 if (receipt.Issue < 10000)
                 {
-                    if (!receipt.Distro.Equals(previousMagazine.Distro)) magazineTextWriter.WriteLine(",,,");
+                    if (!receipt.Distro.Equals(previousMagazine.Distro))
+                    {
+                        magazineTextWriter.WriteLine(",,,");
+                    }
+
                     magazineTextWriter.WriteLine(receipt);
                     previousMagazine = receipt;
 
-                }else
+                }
+                else
                 {
-                    if (!receipt.Distro.Equals(previousNewspaper.Distro)) newspaperTextWriter.WriteLine(",,,");
+                    if (!receipt.Distro.Equals(previousNewspaper.Distro))
+                    {
+                        newspaperTextWriter.WriteLine(",,,");
+                    }
+
                     newspaperTextWriter.WriteLine(receipt);
                     previousNewspaper = receipt;
                 }
@@ -89,7 +122,28 @@ namespace InvoiceToCSL
             newspaperTextWriter.Close();
             newspaperOutputStream.Close();
 
-            outputTextBox.Text += Environment.NewLine + "Finished!";
+            window.WorkDone();
+
         }
+
+        public void UpdateProgress(double progress)
+        {
+            this.Dispatcher.BeginInvoke(DispatcherPriority.Background, (SendOrPostCallback) delegate { this.progressBar.SetValue(ProgressBar.ValueProperty, (double)this.progressBar.GetValue(ProgressBar.ValueProperty) + progress); }, null);
+        }
+
+        public void WorkDone()
+        {
+            this.Dispatcher.BeginInvoke(DispatcherPriority.Background, (SendOrPostCallback)delegate
+                                                                                               {
+                                                                                                   outputTextBox.Text += Environment.NewLine + "Finished!";
+                                                                                                   progressBar.SetValue(ProgressBar.ValueProperty, 1.0);
+                                                                                               }, null);
+        }
+    }
+
+    public interface IProgressWindow
+    {
+        void UpdateProgress(double progress);
+        void WorkDone();
     }
 }
