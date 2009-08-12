@@ -87,10 +87,10 @@ namespace InvoiceToCSL.Core
                     {
                         string distro = match.Groups["distro"].Value;
                         int issue = Int32.Parse(match.Groups["issue"].Value);
-                        DateTime date = DateTime.ParseExact(match.Groups["date"].Value, "dd/MM/yyyy", null);
+                        string rawDate = match.Groups["date"].Value;
                         int quantity = Int32.Parse(match.Groups["quantity"].Value);
 
-                        receipts.Add(new Receipt(date, distro, issue, quantity));
+                        receipts.Add(new Receipt(rawDate, distro, issue, quantity));
                     }
                     else
                     {
@@ -141,8 +141,10 @@ namespace InvoiceToCSL.Core
                 List<int> days = new List<int>();
                 List<int> missingDays = new List<int>();
 
+//                DateTime date = DateTime.ParseExact(match.Groups["date"].Value, "dd/MM/yyyy", null);
+
                 distroReceipts
-                    .ForEach(currentReceipt => days.Add(currentReceipt.Date.Day));
+                    .ForEach(currentReceipt => days.Add(DateTime.ParseExact(currentReceipt.Date, "dd/MM/yyyy", null).Day));
 
                 for (int i = 1; i < 32; i++)
                 {
@@ -152,13 +154,13 @@ namespace InvoiceToCSL.Core
                     }
                 }
 
-                int month = distroReceipts[0].Date.Month;
-                int year = distroReceipts[0].Date.Year;
+                int month = DateTime.ParseExact(distroReceipts[0].Date, "dd/MM/yyyy", null).Month;
+                int year = DateTime.ParseExact(distroReceipts[0].Date, "dd/MM/yyyy", null).Year;
                 string distro = distroReceipts[0].Distro;
 
                 foreach (int day in missingDays)
                 {
-                    distroReceipts.Add(new Receipt(new DateTime(year, month, day), distro, 99999, 0));
+                    distroReceipts.Add(new Receipt(string.Format("{0}/{1}/{2}", day, month, year), distro, 99999, 0));
                 }
 
                 fullNewsPapers.AddRange(distroReceipts);

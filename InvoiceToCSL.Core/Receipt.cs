@@ -23,7 +23,7 @@ namespace InvoiceToCSL.Core
         /// <param name="distro">The distro.</param>
         /// <param name="issue">The issue.</param>
         /// <param name="quantity">The quantity.</param>
-        public Receipt(DateTime date, string distro, int issue, int quantity)
+        public Receipt(string date, string distro, int issue, int quantity)
         {
             this.Date = date;
             this.Distro = distro;
@@ -56,7 +56,7 @@ namespace InvoiceToCSL.Core
         /// Gets or sets the date.
         /// </summary>
         /// <value>The receipt date.</value>
-        public DateTime Date { get; set; }
+        public string Date { get; set; }
 
         /// <summary>
         /// Gets or sets the quantity.
